@@ -1,0 +1,4 @@
+beautifulsoup4==4.6.0
+bs4==0.0.1
+ConfigArgParse==0.13.0
+selenium==3.8.1
