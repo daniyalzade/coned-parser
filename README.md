@@ -16,4 +16,10 @@ pip install -r requirements.txt
 
 # TODO
 
-Start supporting historical APIs
+* Start supporting historical APIs
+* Add test files
+* Test running it on a server
+
+# Future Features
+
+* Add a browser plugin to capture xpaths for more utilities
