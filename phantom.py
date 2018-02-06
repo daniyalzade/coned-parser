@@ -35,22 +35,22 @@ def _get_account_page(username, password, debug=False):
 
 def _parse_bill_text(text):
     due = re.search(REGEX_DATE, text).group(1)
-    ammount = parse_price(re.search(REGEX_AMOUNT, text).group(1))
-    return (due, ammount)
+    amount = parse_price(re.search(REGEX_AMOUNT, text).group(1))
+    return (due, amount)
 
 
 def _parse_current_bill(html):
     soup = BeautifulSoup(html, 'html.parser')
     prev, cur = soup.find(id='divAccountBalance').text.lower().split('current')
-    prev_due, prev_ammount = _parse_bill_text(prev)
-    cur_due, cur_ammount = _parse_bill_text(cur)
+    prev_due, prev_amount = _parse_bill_text(prev)
+    cur_due, cur_amount = _parse_bill_text(cur)
     return [{
-            'ammount': prev_ammount,
+            'amount': prev_amount,
             'due': prev_due,
             'current': False,
             },
             {
-            'ammount': cur_ammount,
+            'amount': cur_amount,
             'due': cur_due,
             'current': True,
             }]
