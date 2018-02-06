@@ -1,4 +1,4 @@
-.credentials
+.*credentials
 tmp/
 *.pyc
 ghostdriver.log
