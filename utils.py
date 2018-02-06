@@ -1,3 +1,4 @@
+from selenium import webdriver
 import re
 
 
@@ -18,3 +19,15 @@ def parse_price(price, fun=max):
         quantity, amount = price.split('|')
         return float(amount) / float(quantity)
     return float(fun(price.replace(',', '').split('-')))  # '$308.00 - $440.00'
+
+
+def get_account_page_driver(login_config):
+    driver = webdriver.PhantomJS()
+    driver.set_window_size(1024, 768)
+    driver.get(login_config['url'])
+    element = driver.find_element_by_xpath(login_config['username_xpath'])
+    element.send_keys(login_config['username'])
+    element = driver.find_element_by_xpath(login_config['password_xpath'])
+    element.send_keys(login_config['password'])
+    driver.find_element_by_xpath(login_config['submit_xpath']).submit()
+    return driver

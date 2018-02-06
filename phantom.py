@@ -3,26 +3,27 @@ from time import sleep
 
 from bs4 import BeautifulSoup
 import configargparse
-from selenium import webdriver
 
+from utils import get_account_page_driver
 from utils import parse_price
 
 DEBUG_FILE = 'tmp/coned.html'
 IMAGE_FILE = 'tmp/screen.png'
-LOGIN_URL = 'https://www.coned.com/en/login'
+LOGIN_CONFIG = {
+    'url': 'https://www.coned.com/en/login',
+    'username_xpath': '//input[@id=\'form-login-email\']',
+    'password_xpath': '//input[@id=\'form-login-password\']',
+    'submit_xpath': '//button[contains(@class, \'js-login-submit-button\')]'
+}
 REGEX_DATE = r'(\d+/\d+/\d+)'
 REGEX_AMOUNT = r'\$(\d+.\d+)'
 
 
 def _get_account_page(username, password, debug=False):
-    driver = webdriver.PhantomJS()
-    driver.set_window_size(1024, 768)
-    driver.get(LOGIN_URL)
-    element = driver.find_element_by_id("form-login-email")
-    element.send_keys(username)
-    element = driver.find_element_by_id("form-login-password")
-    element.send_keys(password)
-    driver.find_element_by_class_name("js-login-submit-button").submit()
+    config = dict(LOGIN_CONFIG,
+                  username=username,
+                  password=password)
+    driver = get_account_page_driver(config)
 
     print 'sleeping to get the new page'
     sleep(10)
@@ -45,15 +46,15 @@ def _parse_current_bill(html):
     prev_due, prev_amount = _parse_bill_text(prev)
     cur_due, cur_amount = _parse_bill_text(cur)
     return [{
-            'amount': prev_amount,
-            'due': prev_due,
-            'current': False,
-            },
-            {
-            'amount': cur_amount,
-            'due': cur_due,
-            'current': True,
-            }]
+        'amount': prev_amount,
+        'due': prev_due,
+        'current': False,
+    }, {
+        'amount': cur_amount,
+        'due': cur_due,
+        'current': True,
+    }]
+
 
 p = configargparse.ArgParser(default_config_files=['.credentials'])
 p.add('--username', required=True, help='username')
@@ -62,8 +63,7 @@ p.add('--debug', help='debug', action='store_true')
 
 options = p.parse_args()
 html = _get_account_page(options.username, options.password,
-        debug=options.debug
-        )
+                         debug=options.debug)
 print _parse_current_bill(html)
 
 # print _parse_current_bill(open(DEBUG_FILE).read())
