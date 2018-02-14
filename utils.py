@@ -1,4 +1,5 @@
 from selenium import webdriver
+from selenium.common.exceptions import NoSuchElementException
 import re
 
 
@@ -30,4 +31,14 @@ def get_account_page_driver(login_config):
     element = driver.find_element_by_xpath(login_config['password_xpath'])
     element.send_keys(login_config['password'])
     driver.find_element_by_xpath(login_config['submit_xpath']).submit()
+
+    login_error_xpath = login_config.get('login_error')
+    if not login_error_xpath:
+        return driver
+    try:
+        element = driver.find_element_by_xpath(login_config['login_error'])
+        raise Exception('invalid login credentials')
+    # No login error encountered
+    except NoSuchElementException:
+        return driver
     return driver

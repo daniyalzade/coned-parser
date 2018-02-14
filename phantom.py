@@ -27,11 +27,11 @@ def _get_account_page(username, password, debug=False):
 
     print 'sleeping to get the new page'
     sleep(10)
-    html_source = driver.page_source.encode('utf8')
     if debug:
+        html_source = driver.page_source.encode('utf8')
         open(DEBUG_FILE, "w").write(html_source)
         driver.save_screenshot(IMAGE_FILE)
-    return html_source
+    return driver
 
 
 def _parse_bill_text(text):
@@ -62,8 +62,9 @@ p.add('--password', required=True, help='password')
 p.add('--debug', help='debug', action='store_true')
 
 options = p.parse_args()
-html = _get_account_page(options.username, options.password,
+driver = _get_account_page(options.username, options.password,
                          debug=options.debug)
+html = driver.page_source.encode('utf8')
 print _parse_current_bill(html)
 
 # print _parse_current_bill(open(DEBUG_FILE).read())

@@ -12,7 +12,8 @@ LOGIN_CONFIG = {
     'url': 'https://www.nationalgridus.com/NY-Home/Default',
     'username_xpath': '//input[@name=\'txtUsername\']',
     'password_xpath': '//input[@name=\'txtPassword\']',
-    'submit_xpath': '//button[@class=\'site-button\']'
+    'submit_xpath': '//button[@class=\'site-button\']',
+    'login_error': '//div[@class=\'error\']'
 }
 
 
@@ -20,17 +21,31 @@ def _get_account_page(username, password, debug=False):
     config = dict(LOGIN_CONFIG,
                   username=username,
                   password=password)
-    driver = get_account_page_driver(config)
 
+    driver = get_account_page_driver(config)
     print 'sleeping to get the new page'
     sleep(10)
     driver.switch_to_frame(driver.find_element_by_name('_sweclient'))
     driver.switch_to_frame(driver.find_element_by_name('_sweview'))
-    html_source = driver.page_source.encode('utf8')
     if debug:
+        html_source = driver.page_source.encode('utf8')
         open(DEBUG_FILE, "w").write(html_source)
         driver.save_screenshot(IMAGE_FILE)
-    return html_source
+    return driver
+
+
+def _get_bills_page(driver):
+    element = driver.find_element_by_xpath("//a[text()='View My Bills']").click()
+    print 'sleeping to get the new page'
+    sleep(10)
+    return driver
+
+
+def _parse_bills(html):
+    soup = BeautifulSoup(html, 'html.parser')
+    for row in soup.find_all('tr', {'class':'listRowOff'}):
+        print row.text
+    return None
 
 
 def _parse_current_bill(html):
@@ -56,6 +71,10 @@ p.add('--password', required=True, help='password')
 p.add('--debug', help='debug', action='store_true')
 
 options = p.parse_args()
-html = _get_account_page(options.username, options.password,
-                         debug=options.debug)
+driver = _get_account_page(options.username, options.password,
+                        debug=options.debug)
+html = driver.page_source.encode('utf8')
 print _parse_current_bill(html)
+driver = _get_bills_page(driver)
+html = driver.page_source.encode('utf8')
+_parse_bills(html)
