@@ -1,5 +1,9 @@
-from selenium import webdriver
 import re
+from selenium import webdriver
+from selenium.common.exceptions import NoSuchElementException
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 
 
 def parse_price(price, fun=max):
@@ -30,4 +34,24 @@ def get_account_page_driver(login_config):
     element = driver.find_element_by_xpath(login_config['password_xpath'])
     element.send_keys(login_config['password'])
     driver.find_element_by_xpath(login_config['submit_xpath']).submit()
+
+    dom_xpath = login_config.get('dom_xpath')
+    if dom_xpath:
+        print 'waiting for the appearence of the required element'
+        element = WebDriverWait(driver, 50).until(
+            EC.presence_of_element_located((By.XPATH, dom_xpath))
+        )
+        login_error_xpath = login_config.get('login_error')
+    if not login_error_xpath:
+        return driver
+    try:
+        element = driver.find_element_by_xpath(login_config['login_error'])
+        raise Exception('invalid login credentials')
+    # No login error encountered
+    except NoSuchElementException:
+        return driver
     return driver
+
+def print_bills_as_csv(bills):
+    for bill in bills:
+        print ', '.join(map(str, bill.values()))

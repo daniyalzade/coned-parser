@@ -1,4 +1,5 @@
 from collections import OrderedDict
+import re
 from time import sleep
 
 from bs4 import BeautifulSoup
@@ -11,23 +12,21 @@ from utils import parse_price
 DEBUG_FILE = 'tmp/coned.html'
 IMAGE_FILE = 'tmp/screen.png'
 LOGIN_CONFIG = {
-    'url': 'https://www.nationalgridus.com/NY-Home/Default',
-    'username_xpath': '//input[@name=\'txtUsername\']',
-    'password_xpath': '//input[@name=\'txtPassword\']',
-    'submit_xpath': '//button[@class=\'site-button\']',
-    'login_error': '//div[@class=\'error\']',
-    'dom_xpath': '//frame[@name=\'_sweclient\']'
+    'url': 'https://www.coned.com/en/login',
+    'username_xpath': '//input[@id=\'form-login-email\']',
+    'password_xpath': '//input[@id=\'form-login-password\']',
+    'submit_xpath': '//button[contains(@class, \'js-login-submit-button\')]',
+    'dom_xpath': '//img[@id=\'ctl00_imgApplicationName\']'
 }
+REGEX_DATE = r'(\d+/\d+/\d+)'
+REGEX_AMOUNT = r'\$(\d+.\d+)'
 
 
 def _get_account_page(username, password, debug=False):
     config = dict(LOGIN_CONFIG,
                   username=username,
                   password=password)
-
     driver = get_account_page_driver(config)
-    driver.switch_to_frame(driver.find_element_by_name('_sweclient'))
-    driver.switch_to_frame(driver.find_element_by_name('_sweview'))
     if debug:
         html_source = driver.page_source.encode('utf8')
         open(DEBUG_FILE, "w").write(html_source)
@@ -35,8 +34,17 @@ def _get_account_page(username, password, debug=False):
     return driver
 
 
+def _parse_bill_text(text):
+    try:
+        due = re.search(REGEX_DATE, text).group(1)
+        amount = parse_price(re.search(REGEX_AMOUNT, text).group(1))
+        return (due, amount)
+    except Exception:
+        return (None, None)
+
+
 def _get_bills_page(driver):
-    driver.find_element_by_xpath("//a[text()='View My Bills']").click()
+    driver.find_element_by_xpath("//a[@id='ctl00_Main_hpLblBillingHistory']").click()
     print 'sleeping to get the new page'
     sleep(10)
     return driver
@@ -45,23 +53,22 @@ def _get_bills_page(driver):
 def _parse_bills(html):
     soup = BeautifulSoup(html, 'html.parser')
     bills = []
-    for row in soup.find_all('tr', {'class':'listRowOff'}):
-        children = row.find_all('span')
+    for row in soup.find(id='ctl00_Main_lvBillHistory_Table1').find_all('tr')[2:]:
+        children = row.find_all('td')
         bill = OrderedDict()
-        bill['start'] = children[1].text
-        bill['end'] = children[2].text
-        bill['usage'] = children[5].text
-        bill['amount'] = parse_price(children[6].text)
+        bill['start'] = children[0].text.strip()
+        bill['end'] = children[1].text.strip()
+        bill['usage'] = children[2].text.strip()
+        bill['amount'] = parse_price(children[4].text)
         bills.append(bill)
     return bills
 
 
 def _parse_current_bill(html):
     soup = BeautifulSoup(html, 'html.parser')
-    cur_amount = parse_price(soup.find(id='s_4_1_16_0').text.lower())
-    cur_due = soup.find(id='s_4_1_17_0').text.lower()
-    prev_amount = parse_price(soup.find(id='s_4_1_2_0').text.lower())
-    prev_due = soup.find(id='s_4_1_3_0').text.lower()
+    prev, cur = soup.find(id='divAccountBalance').text.lower().split('current')
+    prev_due, prev_amount = _parse_bill_text(prev)
+    cur_due, cur_amount = _parse_bill_text(cur)
     return [{
         'amount': prev_amount,
         'due': prev_due,
@@ -74,14 +81,14 @@ def _parse_current_bill(html):
 
 
 def main():
-    program = configargparse.ArgParser(default_config_files=['.nationalcredentials'])
-    program.add('--username', required=True, help='username')
-    program.add('--password', required=True, help='password')
-    program.add('--debug', help='debug', action='store_true')
+    p = configargparse.ArgParser(default_config_files=['.credentials'])
+    p.add('--username', required=True, help='username')
+    p.add('--password', required=True, help='password')
+    p.add('--debug', help='debug', action='store_true')
 
-    options = program.parse_args()
+    options = p.parse_args()
     driver = _get_account_page(options.username, options.password,
-                               debug=options.debug)
+                            debug=options.debug)
     html = driver.page_source.encode('utf8')
     print _parse_current_bill(html)
     driver = _get_bills_page(driver)
