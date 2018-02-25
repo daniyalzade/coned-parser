@@ -61,7 +61,6 @@ def _parse_bills(html):
         bill['usage'] = children[2].text.strip()
         bill['amount'] = parse_price(children[4].text)
         bills.append(bill)
-    print utils.print_bills_as_csv(bills)
     return bills
 
 
