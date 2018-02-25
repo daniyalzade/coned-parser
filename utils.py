@@ -1,6 +1,9 @@
+import re
 from selenium import webdriver
 from selenium.common.exceptions import NoSuchElementException
-import re
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 
 
 def parse_price(price, fun=max):
@@ -32,7 +35,13 @@ def get_account_page_driver(login_config):
     element.send_keys(login_config['password'])
     driver.find_element_by_xpath(login_config['submit_xpath']).submit()
 
-    login_error_xpath = login_config.get('login_error')
+    dom_xpath = login_config.get('dom_xpath')
+    if dom_xpath:
+        print 'waiting for the appearence of the required element'
+        element = WebDriverWait(driver, 50).until(
+            EC.presence_of_element_located((By.XPATH, dom_xpath))
+        )
+        login_error_xpath = login_config.get('login_error')
     if not login_error_xpath:
         return driver
     try:

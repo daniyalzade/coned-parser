@@ -13,7 +13,8 @@ LOGIN_CONFIG = {
     'username_xpath': '//input[@name=\'txtUsername\']',
     'password_xpath': '//input[@name=\'txtPassword\']',
     'submit_xpath': '//button[@class=\'site-button\']',
-    'login_error': '//div[@class=\'error\']'
+    'login_error': '//div[@class=\'error\']',
+    'dom_xpath': '//frame[@name=\'_sweclient\']'
 }
 
 
@@ -23,8 +24,6 @@ def _get_account_page(username, password, debug=False):
                   password=password)
 
     driver = get_account_page_driver(config)
-    print 'sleeping to get the new page'
-    sleep(10)
     driver.switch_to_frame(driver.find_element_by_name('_sweclient'))
     driver.switch_to_frame(driver.find_element_by_name('_sweview'))
     if debug:
@@ -35,7 +34,7 @@ def _get_account_page(username, password, debug=False):
 
 
 def _get_bills_page(driver):
-    element = driver.find_element_by_xpath("//a[text()='View My Bills']").click()
+    driver.find_element_by_xpath("//a[text()='View My Bills']").click()
     print 'sleeping to get the new page'
     sleep(10)
     return driver
@@ -43,9 +42,15 @@ def _get_bills_page(driver):
 
 def _parse_bills(html):
     soup = BeautifulSoup(html, 'html.parser')
+    bills = []
     for row in soup.find_all('tr', {'class':'listRowOff'}):
-        print row.text
-    return None
+        children = row.findChildren()
+        bill = {}
+        bill['start'] = children[4].text
+        bill['end'] = children[5].text
+        bill['amount'] = parse_price(children[-1].text)
+        bills.append(bill)
+    return bills
 
 
 def _parse_current_bill(html):
@@ -65,16 +70,21 @@ def _parse_current_bill(html):
     }]
 
 
-p = configargparse.ArgParser(default_config_files=['.nationalcredentials'])
-p.add('--username', required=True, help='username')
-p.add('--password', required=True, help='password')
-p.add('--debug', help='debug', action='store_true')
+def main():
+    program = configargparse.ArgParser(default_config_files=['.nationalcredentials'])
+    program.add('--username', required=True, help='username')
+    program.add('--password', required=True, help='password')
+    program.add('--debug', help='debug', action='store_true')
 
-options = p.parse_args()
-driver = _get_account_page(options.username, options.password,
-                        debug=options.debug)
-html = driver.page_source.encode('utf8')
-print _parse_current_bill(html)
-driver = _get_bills_page(driver)
-html = driver.page_source.encode('utf8')
-_parse_bills(html)
+    options = program.parse_args()
+    driver = _get_account_page(options.username, options.password,
+                               debug=options.debug)
+    html = driver.page_source.encode('utf8')
+    print _parse_current_bill(html)
+    driver = _get_bills_page(driver)
+    html = driver.page_source.encode('utf8')
+    print _parse_bills(html)
+
+
+if __name__ == "__main__":
+    main()
