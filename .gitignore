@@ -3,3 +3,4 @@ tmp/
 *.pyc
 ghostdriver.log
 .pytest_cache
+.tox/
