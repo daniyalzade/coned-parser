@@ -1,8 +1,10 @@
+from collections import OrderedDict
 from time import sleep
 
 from bs4 import BeautifulSoup
 import configargparse
 
+import utils
 from utils import get_account_page_driver
 from utils import parse_price
 
@@ -44,11 +46,12 @@ def _parse_bills(html):
     soup = BeautifulSoup(html, 'html.parser')
     bills = []
     for row in soup.find_all('tr', {'class':'listRowOff'}):
-        children = row.findChildren()
-        bill = {}
-        bill['start'] = children[4].text
-        bill['end'] = children[5].text
-        bill['amount'] = parse_price(children[-1].text)
+        children = row.find_all('span')
+        bill = OrderedDict()
+        bill['start'] = children[1].text
+        bill['end'] = children[2].text
+        bill['usage'] = children[5].text
+        bill['amount'] = parse_price(children[6].text)
         bills.append(bill)
     return bills
 
@@ -83,7 +86,7 @@ def main():
     print _parse_current_bill(html)
     driver = _get_bills_page(driver)
     html = driver.page_source.encode('utf8')
-    print _parse_bills(html)
+    print utils.print_bills_as_csv(_parse_bills(html))
 
 
 if __name__ == "__main__":
