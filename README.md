@@ -14,6 +14,19 @@ Then, install all requirements for the project. Best done on a virtualenv
 pip install -r requirements.txt
 ```
 
+To run the tests, install pytest
+```
+pip install -U pytest
+```
+
+# Running tests
+
+Runs unit tests. We need a task runner to run unit test and also linting tests
+
+```
+pytest
+```
+
 # TODO
 
 * Start supporting historical APIs
