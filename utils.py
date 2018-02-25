@@ -51,3 +51,7 @@ def get_account_page_driver(login_config):
     except NoSuchElementException:
         return driver
     return driver
+
+def print_bills_as_csv(bills):
+    for bill in bills:
+        print ', '.join(map(str, bill.values()))
